@@ -265,7 +265,7 @@ export default function DoctorPortal({ doctorId, doctorName }: { doctorId: strin
             // Load this specific branch and its commits
             const cSnap = await getDocs(collection(db, "branches", bId, "commits"));
             const commits = cSnap.docs.map(c => c.data() as any);
-            const fullBranch = { ...bData, id: bId, commits };
+            const fullBranch = { ...(bData as Omit<Branch, 'id' | 'commits'>), id: bId, commits } as Branch;
             
             setBranches(prev => {
               if (prev.some(b => b.id === bId)) return prev;
