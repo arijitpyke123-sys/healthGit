@@ -3,7 +3,7 @@ import { LogOut, Sun, Moon } from "lucide-react";
 import AuthPage from "./components/AuthPage";
 import DoctorPortal from "./components/DoctorPortal";
 import PatientPortal from "./components/PatientPortal";
-import { getSystemMode, onSystemModeChange } from "./lib/firebase";
+import { getSystemMode, onSystemModeChange } from "./lib/db_client";
 import { auth } from "./lib/auth";
 
 export default function App() {

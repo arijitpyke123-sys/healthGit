@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Patient, Branch } from "../types";
 import BranchEditor from "./BranchEditor";
-import { db, collection, query, where, getDocs, doc, setDoc, getDoc, handleFirestoreError, OperationType } from "../lib/firebase";
+import { db, collection, query, where, getDocs, doc, setDoc, getDoc, handleDbError, OperationType } from "../lib/db_client";
 
 import { auth } from "../lib/auth";
 
@@ -131,7 +131,7 @@ export default function DoctorPortal({ doctorId, doctorName }: { doctorId: strin
         const branchesQuery = query(collection(db, "branches"), where("doctorId", "==", doctorId));
         branchesSnap = await getDocs(branchesQuery);
       } catch (err) {
-        handleFirestoreError(err, OperationType.LIST, "branches");
+        handleDbError(err, OperationType.LIST, "branches");
       }
 
       const branchesData: Branch[] = [];
@@ -143,7 +143,7 @@ export default function DoctorPortal({ doctorId, doctorName }: { doctorId: strin
         try {
           commitsSnap = await getDocs(collection(db, "branches", d.id, "commits"));
         } catch (err) {
-          handleFirestoreError(err, OperationType.LIST, `branches/${d.id}/commits`);
+          handleDbError(err, OperationType.LIST, `branches/${d.id}/commits`);
         }
         const commits = commitsSnap.docs.map(c => c.data() as any);
         branchesData.push({ ...b, id: d.id, commits });
@@ -155,7 +155,7 @@ export default function DoctorPortal({ doctorId, doctorName }: { doctorId: strin
         const patientsQuery = query(collection(db, "users"), where("role", "==", "patient"));
         patientsSnap = await getDocs(patientsQuery);
       } catch (err) {
-        handleFirestoreError(err, OperationType.LIST, "users");
+        handleDbError(err, OperationType.LIST, "users");
       }
       const pList: Patient[] = [];
 
@@ -177,7 +177,7 @@ export default function DoctorPortal({ doctorId, doctorName }: { doctorId: strin
               pMap[b.patientId] = { ...pDoc.data(), id: pDoc.id } as Patient;
             }
           } catch (e) {
-            handleFirestoreError(e, OperationType.GET, `users/${b.patientId}`);
+            handleDbError(e, OperationType.GET, `users/${b.patientId}`);
           }
         }
       }
@@ -265,7 +265,7 @@ export default function DoctorPortal({ doctorId, doctorName }: { doctorId: strin
             // Load this specific branch and its commits
             const cSnap = await getDocs(collection(db, "branches", bId, "commits"));
             const commits = cSnap.docs.map(c => c.data() as any);
-            const fullBranch = { ...(bData as Omit<Branch, 'id' | 'commits'>), id: bId, commits } as Branch;
+            const fullBranch = { ...bData, id: bId, commits };
             
             setBranches(prev => {
               if (prev.some(b => b.id === bId)) return prev;

@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { Patient, Commit } from "../types";
 import { format } from "date-fns";
-import { db, collection, query, where, orderBy, getDocs, doc, getDoc, setDoc } from "../lib/firebase";
+import { db, collection, query, where, orderBy, getDocs, doc, getDoc, setDoc } from "../lib/db_client";
 
 import { auth } from "../lib/auth";
 

@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { auth } from "../lib/auth";
-import { db, collection, addDoc } from "../lib/firebase";
+import { db, collection, addDoc } from "../lib/db_client";
 
 const MAPTILER_KEY = process.env.MAPTILER_API_KEY || "";
 const hasValidKey = Boolean(MAPTILER_KEY) && MAPTILER_KEY !== "";

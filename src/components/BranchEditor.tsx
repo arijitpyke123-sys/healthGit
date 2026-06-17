@@ -2,7 +2,7 @@ import React, { useState, FormEvent, useEffect } from "react";
 import { GitCommit, GitMerge, FileText, ArrowLeft, CheckCircle2, ShieldCheck, GitBranch, History, ChevronDown, ChevronRight, Maximize2, Minimize2, Paperclip, Trash2, Download, Image, FileSpreadsheet, Eye, Music, Video, Archive, AlertCircle, Search } from "lucide-react";
 import { Branch, Commit } from "../types";
 import { format } from "date-fns";
-import { db, doc, getDoc, setDoc, writeBatch, collection, query, getDocs, orderBy } from "../lib/firebase";
+import { db, doc, getDoc, setDoc, writeBatch, collection, query, getDocs, orderBy } from "../lib/db_client";
 
 export default function BranchEditor({ 
   branch: initialBranch, 

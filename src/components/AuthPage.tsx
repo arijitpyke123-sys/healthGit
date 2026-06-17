@@ -15,8 +15,7 @@ import {
   Navigation
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { auth as localAuth } from "../lib/auth";
-import { auth as fbAuth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, doc, setDoc, getDoc } from "../lib/firebase";
+import { auth } from "../lib/auth";
 
 interface AuthPageProps {
   onAuthSuccess: (user: any) => void;
@@ -99,60 +98,26 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
       : { userId, password, role };
 
     try {
-      if (isSignUp) {
-        if (!email || !password) throw new Error("Email and password required");
-        // Create user in Firebase Auth
-        const userCred = await createUserWithEmailAndPassword(fbAuth, email, password);
-        // Save user to Firestore
-        const userDoc: any = {
-           userId: userCred.user.uid,
-           name,
-           email,
-           role,
-           ...(role === "doctor" ? { specialty: extra } : { dob: extra })
-        };
-        if (location) {
-           userDoc.lat = location.lat;
-           userDoc.lng = location.lng;
-           userDoc.locationName = location.name;
-        }
-        await setDoc(doc(db, "users", userCred.user.uid), userDoc);
-        
-        localAuth.saveUser({
-          userId: userCred.user.uid,
-          name,
-          role: role as "doctor" | "patient",
-          token: await userCred.user.getIdToken()
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        auth.saveUser({
+          userId: data.user.userId,
+          name: data.user.name,
+          role: data.user.role,
+          token: data.token
         });
-        onAuthSuccess({ userId: userCred.user.uid, name, role });
+        onAuthSuccess(data.user);
       } else {
-        if (!email || !password) throw new Error("Email and password required");
-        // Sign in
-        const userCred = await signInWithEmailAndPassword(fbAuth, email, password);
-        // Get role from Firestore
-        const snapshot = await getDoc(doc(db, "users", userCred.user.uid));
-        if (!snapshot.exists()) {
-          throw new Error("User record not found in database.");
-        }
-        const data = snapshot.data();
-        if (data.role !== role) {
-           throw new Error("Invalid role selected for this user.");
-        }
-        
-        localAuth.saveUser({
-          userId: userCred.user.uid,
-          name: data.name || "User",
-          role: data.role as "doctor" | "patient",
-          token: await userCred.user.getIdToken()
-        });
-        onAuthSuccess({ userId: userCred.user.uid, name: data.name, role: data.role });
+        setError(data.error || "Authentication failed");
       }
     } catch (err: any) {
-      if (err.code === "auth/invalid-credential") {
-         setError("Invalid email or password");
-      } else {
-         setError(err.message || "An unexpected error occurred");
-      }
+      setError(err.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -301,17 +266,14 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
                 </>
               )}
               
-              {!isSignUp && (
-                <Input 
-                  label="Email Address" 
-                  type="email"
-                  icon={<Mail className="w-4 h-4" />} 
-                  placeholder="gregory@healthgit.com" 
-                  value={email}
-                  onChange={(e: any) => setEmail(e.target.value)}
-                  required
-                />
-              )}
+              <Input 
+                label="Username / ID" 
+                icon={<ShieldCheck className="w-4 h-4" />} 
+                placeholder={role === "doctor" ? "dr-ross-982" : "alice-baker-44"} 
+                value={userId}
+                onChange={(e: any) => setUserId(e.target.value)}
+                required
+              />
 
               <Input 
                 label="Security Password" 
