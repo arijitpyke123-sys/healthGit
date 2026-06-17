@@ -217,7 +217,7 @@ HealthGit Team`,
 
       const centerLat = parseFloat(lat as string);
       const centerLng = parseFloat(lng as string);
-      const searchRadius = parseFloat((radius as string) || "50");
+      const searchRadius = parseFloat((radius as string) || "3500");
 
       let db;
       try {
