@@ -1,0 +1,6 @@
+{
+  "name": "HealthGit",
+  "description": "Clinical version control system tracking medical data changes with immutable history.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

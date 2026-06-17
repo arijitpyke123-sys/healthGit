@@ -1,0 +1,179 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['role', 'name', 'email', 'userId']) &&
+        data.role in ['doctor', 'patient'] &&
+        data.name is string && data.name.size() <= 100 &&
+        data.email is string && data.email.size() <= 100 &&
+        data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid &&
+        (data.keys().hasAll(['dob']) == false || (data.dob is string && data.dob.size() <= 20)) &&
+        (data.keys().hasAll(['specialty']) == false || (data.specialty is string && data.specialty.size() <= 100)) &&
+        (data.keys().hasAll(['lat']) == false || (data.lat is number)) &&
+        (data.keys().hasAll(['lng']) == false || (data.lng is number)) &&
+        (data.keys().hasAll(['locationName']) == false || (data.locationName is string && data.locationName.size() <= 255));
+    }
+
+    function isValidUserCreate(data) {
+      return isValidUser(data) && data.keys().size() <= 9;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId);
+      allow list: if isSignedIn() && resource.data.role == 'patient';
+      allow create: if isSignedIn() && 
+                    request.auth.uid == userId && 
+                    isValidId(userId) &&
+                    isValidUserCreate(incoming()) && 
+                    incoming().userId == userId;
+      allow update: if isSignedIn() && 
+                    request.auth.uid == userId && 
+                    isValidId(userId) &&
+                    isValidUser(incoming()) && 
+                    incoming().userId == existing().userId && 
+                    incoming().role == existing().role && 
+                    incoming().email == existing().email && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'dob', 'specialty']);
+    }
+
+    function isValidBranch(data) {
+      return data.keys().hasAll(['doctorId', 'patientId', 'name', 'status', 'createdAt', 'branchId']) &&
+        data.doctorId is string && data.doctorId.size() <= 128 && data.doctorId == request.auth.uid &&
+        data.patientId is string && data.patientId.size() <= 128 &&
+        data.name is string && data.name.size() <= 100 &&
+        data.status in ['active', 'merged'] &&
+        data.createdAt is number &&
+        data.branchId is string && data.branchId.size() <= 128;
+    }
+
+    function isValidBranchCreate(data) {
+      return isValidBranch(data) && data.keys().size() == 6 &&
+             exists(/databases/$(database)/documents/users/$(data.patientId));
+    }
+
+    match /branches/{branchId} {
+      allow get: if isSignedIn() && isValidId(branchId);
+      allow list: if isSignedIn() && (resource.data.doctorId == request.auth.uid || resource.data.patientId == request.auth.uid);
+      allow create: if isSignedIn() && 
+                    isValidId(branchId) &&
+                    incoming().branchId == branchId &&
+                    incoming().doctorId == request.auth.uid &&
+                    incoming().status == 'active' &&
+                    isValidBranchCreate(incoming());
+      
+      allow update: if isSignedIn() &&
+                    isValidId(branchId) &&
+                    isValidBranch(incoming()) &&
+                    existing().status == 'active' &&
+                    incoming().doctorId == existing().doctorId &&
+                    incoming().patientId == existing().patientId &&
+                    incoming().branchId == existing().branchId &&
+                    incoming().createdAt == existing().createdAt &&
+                    incoming().name == existing().name &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+    }
+
+    function isValidCommit(data) {
+      return data.keys().hasAll(['hash', 'branchId', 'message', 'clinicalData', 'authorId', 'authorName', 'timestamp']) &&
+             data.hash is string && data.hash.size() <= 128 &&
+             data.branchId is string && data.branchId.size() <= 128 &&
+             data.message is string && data.message.size() <= 1000 &&
+             data.clinicalData is string && data.clinicalData.size() <= 10000 &&
+             data.authorId is string && data.authorId.size() <= 128 && data.authorId == request.auth.uid &&
+             data.authorName is string && data.authorName.size() <= 100 &&
+             data.timestamp is number;
+    }
+
+    function isValidCommitCreate(data) {
+      return isValidCommit(data) && data.keys().size() == 7;
+    }
+
+    match /branches/{branchId}/commits/{commitId} {
+      allow get: if isSignedIn() && isValidId(branchId) && isValidId(commitId);
+      allow list: if isSignedIn() && isValidId(branchId);
+      allow create: if isSignedIn() && 
+                    isValidId(branchId) && isValidId(commitId) &&
+                    incoming().branchId == branchId &&
+                    incoming().authorId == request.auth.uid &&
+                    isValidCommitCreate(incoming()) &&
+                    get(/databases/$(database)/documents/branches/$(branchId)).data.doctorId == request.auth.uid &&
+                    get(/databases/$(database)/documents/branches/$(branchId)).data.status == 'active';
+    }
+
+    function isValidMainCommit(data) {
+      return data.keys().hasAll(['hash', 'patientId', 'message', 'clinicalData', 'authorId', 'authorName', 'timestamp', 'isMerge']) &&
+             data.hash is string && data.hash.size() <= 128 &&
+             data.patientId is string && data.patientId.size() <= 128 &&
+             data.message is string && data.message.size() <= 1000 &&
+             data.clinicalData is string && data.clinicalData.size() <= 10000 &&
+             data.authorId is string && data.authorId.size() <= 128 && data.authorId == request.auth.uid &&
+             data.authorName is string && data.authorName.size() <= 100 &&
+             data.timestamp is number &&
+             data.isMerge is bool &&
+             (data.keys().hasAll(['mergedFromBranchId']) == false || (data.mergedFromBranchId is string && data.mergedFromBranchId.size() <= 128));
+    }
+
+    function isValidMainCommitCreate(data) {
+      return isValidMainCommit(data) && data.keys().size() <= 9 &&
+             exists(/databases/$(database)/documents/users/$(data.patientId));
+    }
+
+    match /patient_commits/{patientId}/commits/{commitId} {
+      allow get: if isSignedIn() && isValidId(patientId) && isValidId(commitId);
+      allow list: if isSignedIn() && isValidId(patientId);
+      allow create: if isSignedIn() && 
+                    isValidId(patientId) && isValidId(commitId) &&
+                    incoming().patientId == patientId &&
+                    incoming().authorId == request.auth.uid &&
+                    isValidMainCommitCreate(incoming());
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll(['bookingId', 'patientId', 'patientName', 'doctorName', 'status', 'appointmentTime', 'timestamp']) &&
+             data.bookingId is string && data.bookingId.size() <= 128 &&
+             data.patientId is string && data.patientId.size() <= 128 &&
+             data.patientName is string && data.patientName.size() <= 100 &&
+             data.doctorName is string && data.doctorName.size() <= 100 &&
+             data.status in ['pending', 'confirmed', 'cancelled'] &&
+             data.appointmentTime is string && data.appointmentTime.size() <= 50 &&
+             data.timestamp is number &&
+             (data.keys().hasAll(['doctorId']) == false || (data.doctorId is string && data.doctorId.size() <= 128)) &&
+             (data.keys().hasAll(['doctorAddress']) == false || (data.doctorAddress is string && data.doctorAddress.size() <= 255));
+    }
+
+    match /bookings/{bookingId} {
+      allow get: if isSignedIn() && isValidId(bookingId);
+      allow list: if isSignedIn() && (resource.data.patientId == request.auth.uid || resource.data.doctorId == request.auth.uid);
+      allow create: if isSignedIn() && 
+                    isValidId(bookingId) &&
+                    incoming().bookingId == bookingId &&
+                    incoming().patientId == request.auth.uid &&
+                    isValidBooking(incoming());
+      allow update: if isSignedIn() &&
+                    isValidId(bookingId) &&
+                    isValidBooking(incoming()) &&
+                    (existing().patientId == request.auth.uid || existing().doctorId == request.auth.uid) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+    }
+  }
+}
