@@ -104,7 +104,15 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
         body: JSON.stringify(payload)
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Non-JSON Response received:", responseText);
+        throw new Error(`Server connection issue. Unexpected response: ${responseText.slice(0, 40)}...`);
+      }
+
       if (data.success) {
         auth.saveUser({
           userId: data.user.userId,
