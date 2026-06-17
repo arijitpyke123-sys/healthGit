@@ -16,6 +16,7 @@ function loadFallbackDb(): Record<string, any[]> {
             userId: "dr-gregory-ross-id",
             name: "Dr. Gregory Ross",
             email: "dr.ross@healthgit.com",
+            password: "$2a$10$8K07.LpLgVIsfshYfF7DPOY6r4H8Z8K.4rXbYxID/C3Q1667r9Cne",
             role: "doctor",
             specialty: "Cardiology",
             createdAt: new Date().toISOString()
@@ -24,6 +25,7 @@ function loadFallbackDb(): Record<string, any[]> {
             userId: "dr-helen-vance-id",
             name: "Dr. Helen Vance",
             email: "helen.vance@healthgit.com",
+            password: "$2a$10$8K07.LpLgVIsfshYfF7DPOY6r4H8Z8K.4rXbYxID/C3Q1667r9Cne",
             role: "doctor",
             specialty: "Pediatrics",
             createdAt: new Date().toISOString()
@@ -32,6 +34,7 @@ function loadFallbackDb(): Record<string, any[]> {
             userId: "alice-baker-id",
             name: "Alice Baker",
             email: "alice.baker@healthgit.com",
+            password: "$2a$10$8K07.LpLgVIsfshYfF7DPOY6r4H8Z8K.4rXbYxID/C3Q1667r9Cne",
             role: "patient",
             dob: "1988-10-24",
             createdAt: new Date().toISOString()
@@ -40,6 +43,7 @@ function loadFallbackDb(): Record<string, any[]> {
             userId: "marcus-campbell-id",
             name: "Marcus Campbell",
             email: "marcus.campbell@healthgit.com",
+            password: "$2a$10$8K07.LpLgVIsfshYfF7DPOY6r4H8Z8K.4rXbYxID/C3Q1667r9Cne",
             role: "patient",
             dob: "1992-08-14",
             createdAt: new Date().toISOString()
